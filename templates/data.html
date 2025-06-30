@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Данные клиента {{ client_id }}{% endblock %}
+{% block header %}Данные от клиента {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад к списку клиентов</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Тип данных</th>
+                    <th>Данные</th>
+                    <th>Время создания</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in data %}
+                <tr>
+                    <td>{{ d.id }}</td>
+                    <td><span class="badge bg-primary">{{ d.data_type }}</span></td>
+                    <td>
+                        <pre class="mb-0" style="max-width: 300px; overflow-x: auto;">{{ d.data }}</pre>
+                    </td>
+                    <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if not data %}
+        <p class="text-muted">Данные от этого клиента отсутствуют.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

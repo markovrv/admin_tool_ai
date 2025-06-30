@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Товары (PLU){% endblock %}
+{% block header %}Список товаров (PLU){% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('plu_add') }}" class="btn btn-success">Добавить товар</a>
+    <a href="{{ url_for('select_client_for_plu', action='send') }}" class="btn btn-primary">Отправить в весы</a>
+    <a href="{{ url_for('select_client_for_plu', action='load') }}" class="btn btn-warning">Загрузить из весов</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Название 1</th>
+                        <th>Название 2</th>
+                        <th>Цена</th>
+                        <th>Код</th>
+                        <th>Группа</th>
+                        <th>Тара</th>
+                        <th>Сообщение</th>
+                        <th>Срок годности</th>
+                        <th>Логотип</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plu in plus %}
+                    <tr>
+                        <td>{{ plu.number }}</td>
+                        <td>{{ plu.name1 }}</td>
+                        <td>{{ plu.name2 or '-' }}</td>
+                        <td>{{ '%.2f'|format(plu.price) }}</td>
+                        <td>{{ plu.code }}</td>
+                        <td>{{ plu.group_code }}</td>
+                        <td>{{ plu.tare }}г</td>
+                        <td>{{ plu.message_number or '-' }}</td>
+                        <td>
+                            {% if plu.expiry_type == 0 %}
+                                {{ plu.expiry_value }}
+                            {% else %}
+                                {{ plu.expiry_value }} дн.
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if plu.logo_type > 0 %}
+                                <span class="badge bg-info">{{ plu.logo_type }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Нет</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('plu_edit', plu_id=plu.id) }}" class="btn btn-sm btn-info">Редактировать</a>
+                            <form action="{{ url_for('plu_delete', plu_id=plu.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Удалить товар?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not plus %}
+        <p class="text-muted">Товары отсутствуют.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Команды клиента {{ client_id }}{% endblock %}
+{% block header %}Команды для клиента {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('send_command', client_id=client_id) }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Отправить новую команду
+    </a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад к списку клиентов</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Команда</th>
+                    <th>Статус</th>
+                    <th>Время создания</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cmd in commands %}
+                <tr>
+                    <td>{{ cmd.id }}</td>
+                    <td><code>{{ cmd.command }}</code></td>
+                    <td>
+                        {% if cmd.status == 'pending' %}
+                            <span class="badge bg-warning">Ожидает</span>
+                        {% elif cmd.status == 'sent' %}
+                            <span class="badge bg-info">Отправлена</span>
+                        {% elif cmd.status == 'done' %}
+                            <span class="badge bg-success">Выполнена</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ cmd.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if not commands %}
+        <p class="text-muted">Команды для этого клиента отсутствуют.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

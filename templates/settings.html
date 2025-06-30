@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки весов - {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Настройки весов - {{ client_id }}</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Настройки пользователя</h4>
+                </div>
+                <div class="card-body">
+                    {% if user_settings %}
+                        <table class="table table-sm">
+                            <tr><td>Номер отдела:</td><td>{{ user_settings.dept_no }}</td></tr>
+                            <tr><td>Формат этикетки:</td><td>{{ user_settings.label_format }}</td></tr>
+                            <tr><td>Формат штрих-кода:</td><td>{{ user_settings.barcode_format }}</td></tr>
+                            <tr><td>Настройка:</td><td>{{ user_settings.adjst }}</td></tr>
+                            <tr><td>Особенности печати:</td><td>{{ user_settings.print_features }}</td></tr>
+                            <tr><td>Автопечать веса:</td><td>{{ user_settings.auto_print_weight }}</td></tr>
+                        </table>
+                    {% else %}
+                        <p class="text-muted">Настройки пользователя не загружены</p>
+                    {% endif %}
+                    <a href="{{ url_for('user_settings_edit', client_id=client_id) }}" class="btn btn-primary">Редактировать</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Заводские настройки</h4>
+                </div>
+                <div class="card-body">
+                    {% if factory_settings %}
+                        <table class="table table-sm">
+                            <tr><td>Максимальный вес:</td><td>{{ factory_settings.max_weight }} г</td></tr>
+                            <tr><td>Знаков после запятой (вес):</td><td>{{ factory_settings.dec_point_weight }}</td></tr>
+                            <tr><td>Знаков после запятой (цена):</td><td>{{ factory_settings.dec_point_price }}</td></tr>
+                            <tr><td>Знаков после запятой (сумма):</td><td>{{ factory_settings.dec_point_sum }}</td></tr>
+                            <tr><td>Двойной диапазон:</td><td>{{ factory_settings.dual_range }}</td></tr>
+                            <tr><td>Шаг веса (верхний):</td><td>{{ factory_settings.weight_step_upper }}</td></tr>
+                            <tr><td>Шаг веса (нижний):</td><td>{{ factory_settings.weight_step_lower }}</td></tr>
+                            <tr><td>Цена за вес:</td><td>{{ factory_settings.price_weight }}</td></tr>
+                            <tr><td>Округление суммы:</td><td>{{ factory_settings.round_sum }}</td></tr>
+                            <tr><td>Лимит тары:</td><td>{{ factory_settings.tare_limit }} г</td></tr>
+                        </table>
+                    {% else %}
+                        <p class="text-muted">Заводские настройки не загружены</p>
+                    {% endif %}
+                    <a href="{{ url_for('factory_settings_edit', client_id=client_id) }}" class="btn btn-primary">Редактировать</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад к списку клиентов</a>
+    </div>
+</div>
+{% endblock %} 

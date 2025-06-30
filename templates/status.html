@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Статус весов - {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Статус весов - {{ client_id }}</h2>
+    
+    {% if statuses %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Вес</th>
+                    <th>Цена</th>
+                    <th>Сумма</th>
+                    <th>PLU</th>
+                    <th>Перегрузка</th>
+                    <th>Режим тары</th>
+                    <th>Нулевой вес</th>
+                    <th>Двойной диапазон</th>
+                    <th>Стабильный вес</th>
+                    <th>Минусовый знак</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for status in statuses %}
+                <tr>
+                    <td>{{ status.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+                    <td>{{ "%.2f"|format(status.weight / 100) }} кг</td>
+                    <td>{{ "%.2f"|format(status.price / 100) }} ₽</td>
+                    <td>{{ "%.2f"|format(status.sum / 100) }} ₽</td>
+                    <td>{{ status.plu_number }}</td>
+                    <td>
+                        {% if status.overload %}
+                        <span class="badge bg-danger">Да</span>
+                        {% else %}
+                        <span class="badge bg-success">Нет</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if status.tare_mode %}
+                        <span class="badge bg-warning">Да</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Нет</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if status.zero_weight %}
+                        <span class="badge bg-info">Да</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Нет</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if status.dual_range %}
+                        <span class="badge bg-primary">Да</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Нет</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if status.stable_weight %}
+                        <span class="badge bg-success">Да</span>
+                        {% else %}
+                        <span class="badge bg-warning">Нет</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if status.minus_sign %}
+                        <span class="badge bg-danger">Да</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Нет</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Данные о статусе весов не найдены.
+    </div>
+    {% endif %}
+    
+    <div class="mt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад к списку клиентов</a>
+    </div>
+</div>
+{% endblock %} 

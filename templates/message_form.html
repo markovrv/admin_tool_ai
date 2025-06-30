@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'add' %}Добавить сообщение{% else %}Редактировать сообщение{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>{% if action == 'add' %}Добавить сообщение{% else %}Редактировать сообщение{% endif %}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="number" class="form-label">Номер сообщения *</label>
+                            <input type="number" class="form-control" id="number" name="number" 
+                                   value="{{ message.number if message else '' }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Содержимое сообщения *</label>
+                            <textarea class="form-control" id="content" name="content" rows="5" required>{{ message.content if message else '' }}</textarea>
+                            <div class="form-text">Максимум 400 символов</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('message_list') }}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'add' %}Добавить{% else %}Сохранить{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

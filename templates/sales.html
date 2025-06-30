@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Продажи - {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Продажи - {{ client_id }}</h2>
+    
+    {% if sales %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Пробег</th>
+                    <th>Этикетки</th>
+                    <th>Общая сумма</th>
+                    <th>Количество продаж</th>
+                    <th>Общий вес</th>
+                    <th>Сумма PLU</th>
+                    <th>Продажи PLU</th>
+                    <th>Вес PLU</th>
+                    <th>Свободные PLU</th>
+                    <th>Свободные сообщения</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td>{{ sale.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>{{ sale.mileage }}</td>
+                    <td>{{ sale.label_count }}</td>
+                    <td>{{ "%.2f"|format(sale.total_sum / 100) }} ₽</td>
+                    <td>{{ sale.sales_count }}</td>
+                    <td>{{ "%.2f"|format(sale.total_weight / 100) }} кг</td>
+                    <td>{{ "%.2f"|format(sale.plu_sum / 100) }} ₽</td>
+                    <td>{{ sale.plu_sales_count }}</td>
+                    <td>{{ "%.2f"|format(sale.plu_weight / 100) }} кг</td>
+                    <td>{{ sale.free_plu }}</td>
+                    <td>{{ sale.free_msg }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Данные о продажах не найдены.
+    </div>
+    {% endif %}
+    
+    <div class="mt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад к списку клиентов</a>
+    </div>
+</div>
+{% endblock %} 

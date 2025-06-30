@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщения{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Сообщения</h2>
+        <a href="{{ url_for('message_add') }}" class="btn btn-primary">Добавить сообщение</a>
+    </div>
+
+    {% if messages %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Номер</th>
+                    <th>Содержимое</th>
+                    <th>Дата создания</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for message in messages %}
+                <tr>
+                    <td>{{ message.number }}</td>
+                    <td>{{ message.content[:50] }}{% if message.content|length > 50 %}...{% endif %}</td>
+                    <td>{{ message.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        <a href="{{ url_for('message_edit', message_id=message.id) }}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                        <form method="POST" action="{{ url_for('message_delete', message_id=message.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить сообщение?')">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Сообщения не найдены. <a href="{{ url_for('message_add') }}">Добавить первое сообщение</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

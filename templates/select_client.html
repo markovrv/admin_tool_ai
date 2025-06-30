@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Выбор клиента{% endblock %}
+{% block header %}
+    {% if action == 'send' %}
+        Выбор клиента для отправки товаров в весы
+    {% elif action == 'load' %}
+        Выбор клиента для загрузки товаров из весов
+    {% else %}
+        Выбор клиента
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">
+            {% if action == 'send' %}
+                Выберите клиента для отправки товаров в весы:
+            {% elif action == 'load' %}
+                Выберите клиента для загрузки товаров из весов:
+            {% endif %}
+        </h5>
+        
+        {% if clients %}
+            <div class="row">
+                {% for client in clients %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ client.client_id }}</h6>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    Последний онлайн: {{ client.last_seen.strftime('%Y-%m-%d %H:%M:%S') if client.last_seen else 'Неизвестно' }}
+                                </small>
+                            </p>
+                            
+                            {% if action == 'send' %}
+                                <a href="{{ url_for('send_to_scales', client_id=client.client_id) }}" 
+                                   class="btn btn-primary">Отправить товары этому клиенту</a>
+                            {% elif action == 'load' %}
+                                <a href="{{ url_for('load_from_scales_form', client_id=client.client_id) }}" 
+                                   class="btn btn-warning">Загрузить товары с этого клиента</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                Клиенты не найдены. Сначала подключите клиент к серверу.
+            </div>
+        {% endif %}
+        
+        <div class="mt-3">
+            <a href="{{ url_for('plu_list') }}" class="btn btn-secondary">Назад к товарам</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

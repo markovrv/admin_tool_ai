@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Заводские настройки - {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Заводские настройки - {{ client_id }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="max_weight" class="form-label">Максимальный вес (г)</label>
+                            <input type="number" class="form-control" id="max_weight" name="max_weight" 
+                                   value="{{ settings.max_weight }}" min="1000" max="50000">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="dec_point_weight" class="form-label">Знаков после запятой (вес)</label>
+                            <input type="number" class="form-control" id="dec_point_weight" name="dec_point_weight" 
+                                   value="{{ settings.dec_point_weight }}" min="0" max="3">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="dec_point_price" class="form-label">Знаков после запятой (цена)</label>
+                            <input type="number" class="form-control" id="dec_point_price" name="dec_point_price" 
+                                   value="{{ settings.dec_point_price }}" min="0" max="3">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="dec_point_sum" class="form-label">Знаков после запятой (сумма)</label>
+                            <input type="number" class="form-control" id="dec_point_sum" name="dec_point_sum" 
+                                   value="{{ settings.dec_point_sum }}" min="0" max="3">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="dual_range" class="form-label">Двойной диапазон</label>
+                            <input type="number" class="form-control" id="dual_range" name="dual_range" 
+                                   value="{{ settings.dual_range }}" min="0" max="1">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="weight_step_upper" class="form-label">Шаг веса (верхний диапазон)</label>
+                            <input type="number" class="form-control" id="weight_step_upper" name="weight_step_upper" 
+                                   value="{{ settings.weight_step_upper }}" min="1" max="100">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="weight_step_lower" class="form-label">Шаг веса (нижний диапазон)</label>
+                            <input type="number" class="form-control" id="weight_step_lower" name="weight_step_lower" 
+                                   value="{{ settings.weight_step_lower }}" min="1" max="100">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="price_weight" class="form-label">Цена за вес</label>
+                            <input type="number" class="form-control" id="price_weight" name="price_weight" 
+                                   value="{{ settings.price_weight }}" min="0" max="65535">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="round_sum" class="form-label">Округление суммы</label>
+                            <input type="number" class="form-control" id="round_sum" name="round_sum" 
+                                   value="{{ settings.round_sum }}" min="0" max="255">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tare_limit" class="form-label">Лимит тары (г)</label>
+                            <input type="number" class="form-control" id="tare_limit" name="tare_limit" 
+                                   value="{{ settings.tare_limit }}" min="0" max="10000">
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('settings_view', client_id=client_id) }}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

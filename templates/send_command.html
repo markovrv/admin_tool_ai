@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Отправить команду{% endblock %}
+{% block header %}Отправить команду клиенту {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="command" class="form-label">Команда:</label>
+                <input type="text" class="form-control" id="command" name="command" required 
+                       placeholder="Например: get_weight, update_settings, restart">
+                <div class="form-text">Введите команду для выполнения на клиенте</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Отправить команду</button>
+            <a href="{{ url_for('commands', client_id=client_id) }}" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4">
+    <h4>Примеры команд:</h4>
+    <ul>
+        <li><code>get_weight</code> - получить текущий вес с весов</li>
+        <li><code>update_settings</code> - обновить настройки весов</li>
+        <li><code>restart</code> - перезапустить клиент</li>
+        <li><code>get_status</code> - получить статус подключения к весам</li>
+    </ul>
+</div>
+{% endblock %} 

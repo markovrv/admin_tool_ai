@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Клиенты{% endblock %}
+{% block header %}Список клиентов{% endblock %}
+
+{% block content %}
+    <h2>Список клиентов</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Client ID</th>
+                <th>Последний онлайн</th>
+                <th>Статус весов</th>
+                <th>Попытки подключения</th>
+                <th>Последний статус</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td>{{ client.id }}</td>
+                <td>{{ client.client_id }}</td>
+                <td>{{ client.last_seen.strftime('%Y-%m-%d %H:%M:%S') if client.last_seen else 'Неизвестно' }}</td>
+                <td>
+                    {% if client.scales_connected %}
+                        <span class="badge bg-success">Подключены</span>
+                    {% else %}
+                        <span class="badge bg-danger">Отключены</span>
+                    {% endif %}
+                </td>
+                <td>{{ client.connection_attempts }}</td>
+                <td>{{ client.last_status_time.strftime('%Y-%m-%d %H:%M:%S') if client.last_status_time else 'Нет данных' }}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('commands', client_id=client.client_id) }}" class="btn btn-sm btn-info" title="Команды">
+                            <i class="bi bi-list-ul"></i>
+                        </a>
+                        <a href="{{ url_for('data', client_id=client.client_id) }}" class="btn btn-sm btn-secondary" title="Данные">
+                            <i class="bi bi-database"></i>
+                        </a>
+                        <a href="{{ url_for('settings_view', client_id=client.client_id) }}" class="btn btn-sm btn-warning" title="Настройки">
+                            <i class="bi bi-gear"></i>
+                        </a>
+                        <a href="{{ url_for('sales_view', client_id=client.client_id) }}" class="btn btn-sm btn-success" title="Продажи">
+                            <i class="bi bi-graph-up"></i>
+                        </a>
+                        <a href="{{ url_for('status_view', client_id=client.client_id) }}" class="btn btn-sm btn-primary" title="Статус весов">
+                            <i class="bi bi-speedometer2"></i>
+                        </a>
+                        <a href="{{ url_for('send_scale_command', client_id=client.client_id) }}" class="btn btn-sm btn-danger" title="Команды весам">
+                            <i class="bi bi-terminal"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if not clients %}
+    <p class="text-muted">Клиенты отсутствуют.</p>
+    {% endif %}
+{% endblock %}

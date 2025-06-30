@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Загрузка товаров из весов{% endblock %}
+{% block header %}Загрузка товаров из весов клиента {{ client_id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Укажите номера товаров для загрузки</h5>
+        <p class="card-text">
+            Введите номера товаров (PLU), которые нужно загрузить из весов клиента <strong>{{ client_id }}</strong>.
+            Номера разделяйте запятыми.
+        </p>
+        
+        <form method="POST">
+            <div class="mb-3">
+                <label for="numbers" class="form-label">Номера товаров:</label>
+                <input type="text" class="form-control" id="numbers" name="numbers" required 
+                       placeholder="Например: 1, 2, 5, 10" style="width: 300px;">
+                <div class="form-text">
+                    Введите номера товаров через запятую (например: 1, 2, 5, 10)
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-warning">
+                <i class="bi bi-download"></i> Загрузить товары
+            </button>
+            <a href="{{ url_for('select_client_for_plu', action='load') }}" class="btn btn-secondary">Назад</a>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="alert alert-info">
+        <h6><i class="bi bi-info-circle"></i> Информация:</h6>
+        <ul class="mb-0">
+            <li>Товары будут загружены из весов клиента <strong>{{ client_id }}</strong></li>
+            <li>Если товар с указанным номером не найден в весах, он будет пропущен</li>
+            <li>Существующие товары с такими же номерами будут обновлены</li>
+            <li>Новые товары будут добавлены в базу данных</li>
+        </ul>
+    </div>
+</div>
+{% endblock %} 
