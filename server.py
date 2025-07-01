@@ -625,6 +625,48 @@ def send_scale_command(client_id):
     
     return render_template('send_scale_command.html', client_id=client_id)
 
+@app.route('/plu/send_selected_to_scales', methods=['POST'])
+def send_selected_to_scales():
+    selected_numbers = request.form.getlist('selected_plus')
+    if not selected_numbers:
+        flash('Выберите хотя бы один товар для отправки', 'danger')
+        return redirect(url_for('plu_list'))
+    # Сохраняем выбранные номера во временную сессию
+    # Можно использовать session, но для простоты — через query string
+    return redirect(url_for('select_client_for_selected', numbers=','.join(selected_numbers)))
+
+@app.route('/plu/select_client_for_selected')
+def select_client_for_selected():
+    numbers = request.args.get('numbers', '')
+    clients = Client.query.all()
+    return render_template('select_client.html', clients=clients, action='send_selected', numbers=numbers)
+
+@app.route('/plu/send_selected_to_scales_final/<client_id>/<numbers>')
+def send_selected_to_scales_final(client_id, numbers):
+    num_list = [int(n) for n in numbers.split(',') if n.isdigit()]
+    plus = PLU.query.filter(PLU.number.in_(num_list)).all()
+    plu_data = []
+    for p in plus:
+        plu_data.append({
+            'number': p.number,
+            'name1': p.name1,
+            'name2': p.name2,
+            'price': p.price,
+            'code': p.code,
+            'group_code': p.group_code,
+            'tare': p.tare,
+            'message_number': p.message_number,
+            'expiry_type': p.expiry_type,
+            'expiry_value': p.expiry_value,
+            'logo_type': p.logo_type,
+            'cert_code': p.cert_code
+        })
+    command = Command(client_id=client_id, command=json.dumps({'action': 'upload_plu', 'data': plu_data}))
+    db.session.add(command)
+    db.session.commit()
+    flash(f'Выбранные товары отправлены клиенту {client_id}', 'success')
+    return redirect(url_for('plu_list'))
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

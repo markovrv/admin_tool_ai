@@ -15,7 +15,7 @@ POLL_INTERVAL = 10
 RECONNECT_INTERVAL = 30
 
 # Настройки весов
-SERIAL_PORT = 'COM3'
+SERIAL_PORT = 'COM2'
 BAUDRATE = 9600
 
 # Константы команд и длин

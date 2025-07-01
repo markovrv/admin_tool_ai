@@ -37,6 +37,9 @@
                             {% if action == 'send' %}
                                 <a href="{{ url_for('send_to_scales', client_id=client.client_id) }}" 
                                    class="btn btn-primary">Отправить товары этому клиенту</a>
+                            {% elif action == 'send_selected' %}
+                                <a href="{{ url_for('send_selected_to_scales_final', client_id=client.client_id, numbers=numbers) }}" 
+                                   class="btn btn-primary">Отправить выбранные товары этому клиенту</a>
                             {% elif action == 'load' %}
                                 <a href="{{ url_for('load_from_scales_form', client_id=client.client_id) }}" 
                                    class="btn btn-warning">Загрузить товары с этого клиента</a>
