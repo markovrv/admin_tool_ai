@@ -14,7 +14,7 @@
                 <div class="form-text">Введите команду для выполнения на клиенте</div>
             </div>
             <button type="submit" class="btn btn-primary">Отправить команду</button>
-            <a href="{{ url_for('commands', client_id=client_id) }}" class="btn btn-secondary">Отмена</a>
+            <a href="{{ url_for('commands', client=client_id) }}" class="btn btn-secondary">Отмена</a>
         </form>
     </div>
 </div>

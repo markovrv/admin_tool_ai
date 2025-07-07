@@ -107,8 +107,12 @@ class ScaleStatus(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # --- API ---
-@app.route('/api/commands/<client_id>', methods=['GET'])
-def get_command(client_id):
+@app.route('/api/commands', methods=['GET'])
+def get_command():
+    client_id = request.args.get('client')
+    if not client_id:
+        return jsonify({'error': 'Missing client parameter'}), 400
+    
     client = Client.query.filter_by(client_id=client_id).first()
     if not client:
         client = Client(client_id=client_id)
@@ -123,8 +127,12 @@ def get_command(client_id):
         return jsonify({'command': command.command, 'command_id': command.id})
     return jsonify({'command': None})
 
-@app.route('/api/data/<client_id>', methods=['POST'])
-def post_data(client_id):
+@app.route('/api/data', methods=['POST'])
+def post_data():
+    client_id = request.args.get('client')
+    if not client_id:
+        return jsonify({'error': 'Missing client parameter'}), 400
+    
     content = request.json
     data_type = content.get('data_type')
     data = content.get('data')
@@ -181,8 +189,12 @@ def post_data(client_id):
     db.session.commit()
     return jsonify({'status': 'ok'})
 
-@app.route('/api/ack/<client_id>', methods=['POST'])
-def ack_command(client_id):
+@app.route('/api/ack', methods=['POST'])
+def ack_command():
+    client_id = request.args.get('client')
+    if not client_id:
+        return jsonify({'error': 'Missing client parameter'}), 400
+    
     content = request.json
     command_id = content.get('command_id')
     command = Command.query.filter_by(id=command_id, client_id=client_id).first()
@@ -193,8 +205,12 @@ def ack_command(client_id):
     return jsonify({'error': 'Command not found'}), 404
 
 # --- API для загрузки данных от клиентов ---
-@app.route('/api/plu_upload/<client_id>', methods=['POST'])
-def api_plu_upload(client_id):
+@app.route('/api/plu_upload', methods=['POST'])
+def api_plu_upload():
+    client_id = request.args.get('client')
+    if not client_id:
+        return jsonify({'error': 'Missing client parameter'}), 400
+    
     content = request.json
     plu_list = content.get('plu_list', [])
     for plu in plu_list:
@@ -236,8 +252,12 @@ def api_plu_upload(client_id):
     db.session.commit()
     return jsonify({'status': 'ok'})
 
-@app.route('/api/message_upload/<client_id>', methods=['POST'])
-def api_message_upload(client_id):
+@app.route('/api/message_upload', methods=['POST'])
+def api_message_upload():
+    client_id = request.args.get('client')
+    if not client_id:
+        return jsonify({'error': 'Missing client parameter'}), 400
+    
     content = request.json
     message_list = content.get('message_list', [])
     for msg in message_list:
@@ -254,8 +274,12 @@ def api_message_upload(client_id):
     db.session.commit()
     return jsonify({'status': 'ok'})
 
-@app.route('/api/settings_upload/<client_id>', methods=['POST'])
-def api_settings_upload(client_id):
+@app.route('/api/settings_upload', methods=['POST'])
+def api_settings_upload():
+    client_id = request.args.get('client')
+    if not client_id:
+        return jsonify({'error': 'Missing client parameter'}), 400
+    
     content = request.json
     settings_type = content.get('settings_type')
     settings_data = content.get('settings_data', {})
@@ -339,18 +363,31 @@ def index():
     
     return render_template('index.html', clients=clients)
 
-@app.route('/commands/<client_id>')
-def commands(client_id):
+@app.route('/commands')
+def commands():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
     commands = Command.query.filter_by(client_id=client_id).order_by(Command.created_at.desc()).all()
     return render_template('commands.html', commands=commands, client_id=client_id)
 
-@app.route('/data/<client_id>')
-def data(client_id):
+@app.route('/data')
+def data():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
     data = ClientData.query.filter_by(client_id=client_id).order_by(ClientData.created_at.desc()).all()
     return render_template('data.html', data=data, client_id=client_id)
 
-@app.route('/send_command/<client_id>', methods=['GET', 'POST'])
-def send_command(client_id):
+@app.route('/send_command', methods=['GET', 'POST'])
+def send_command():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
+    
     if request.method == 'POST':
         command_text = request.form.get('command')
         if command_text:
@@ -358,7 +395,7 @@ def send_command(client_id):
             db.session.add(command)
             db.session.commit()
             flash(f'Команда "{command_text}" отправлена клиенту {client_id}', 'success')
-            return redirect(url_for('commands', client_id=client_id))
+            return redirect(url_for('commands', client=client_id))
         else:
             flash('Команда не может быть пустой', 'error')
     
@@ -442,8 +479,13 @@ def plu_delete(plu_id):
     return redirect(url_for('plu_list'))
 
 # --- Кнопки для обмена с весами ---
-@app.route('/plu/send_to_scales/<client_id>', methods=['GET', 'POST'])
-def send_to_scales(client_id):
+@app.route('/plu/send_to_scales', methods=['GET', 'POST'])
+def send_to_scales():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('plu_list'))
+    
     plus = PLU.query.all()
     plu_data = []
     for p in plus:
@@ -467,19 +509,24 @@ def send_to_scales(client_id):
     flash(f'Товары отправлены клиенту {client_id}', 'success')
     return redirect(url_for('plu_list'))
 
-@app.route('/plu/load_from_scales_form/<client_id>', methods=['GET', 'POST'])
-def load_from_scales_form(client_id):
+@app.route('/plu/load_from_scales_form', methods=['GET', 'POST'])
+def load_from_scales_form():
     """Форма для загрузки товаров из весов с указанием номеров"""
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('plu_list'))
+    
     if request.method == 'POST':
         numbers = request.form.get('numbers')
         if not numbers:
             flash('Укажите номера товаров через запятую', 'danger')
-            return redirect(url_for('load_from_scales_form', client_id=client_id))
+            return redirect(url_for('load_from_scales_form', client=client_id))
         try:
             num_list = [int(n.strip()) for n in numbers.split(',') if n.strip().isdigit()]
         except Exception:
             flash('Некорректный формат номеров', 'danger')
-            return redirect(url_for('load_from_scales_form', client_id=client_id))
+            return redirect(url_for('load_from_scales_form', client=client_id))
         command = Command(client_id=client_id, command=json.dumps({'action': 'download_plu', 'numbers': num_list}))
         db.session.add(command)
         db.session.commit()
@@ -534,15 +581,24 @@ def message_delete(message_id):
     return redirect(url_for('message_list'))
 
 # --- Веб-интерфейс для настроек ---
-@app.route('/settings/<client_id>')
-def settings_view(client_id):
+@app.route('/settings')
+def settings_view():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
     user_settings = UserSettings.query.filter_by(client_id=client_id).first()
     factory_settings = FactorySettings.query.filter_by(client_id=client_id).first()
     return render_template('settings.html', client_id=client_id, 
                          user_settings=user_settings, factory_settings=factory_settings)
 
-@app.route('/settings/user/<client_id>', methods=['GET', 'POST'])
-def user_settings_edit(client_id):
+@app.route('/settings/user', methods=['GET', 'POST'])
+def user_settings_edit():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
+    
     settings = UserSettings.query.filter_by(client_id=client_id).first()
     if not settings:
         settings = UserSettings(client_id=client_id)
@@ -558,12 +614,17 @@ def user_settings_edit(client_id):
         settings.auto_print_weight = request.form.get('auto_print_weight', type=int) or 0
         db.session.commit()
         flash('Настройки пользователя обновлены', 'success')
-        return redirect(url_for('settings_view', client_id=client_id))
+        return redirect(url_for('settings_view', client=client_id))
     
     return render_template('user_settings_form.html', client_id=client_id, settings=settings)
 
-@app.route('/settings/factory/<client_id>', methods=['GET', 'POST'])
-def factory_settings_edit(client_id):
+@app.route('/settings/factory', methods=['GET', 'POST'])
+def factory_settings_edit():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
+    
     settings = FactorySettings.query.filter_by(client_id=client_id).first()
     if not settings:
         settings = FactorySettings(client_id=client_id)
@@ -583,25 +644,38 @@ def factory_settings_edit(client_id):
         settings.tare_limit = request.form.get('tare_limit', type=int) or 5000
         db.session.commit()
         flash('Заводские настройки обновлены', 'success')
-        return redirect(url_for('settings_view', client_id=client_id))
+        return redirect(url_for('settings_view', client=client_id))
     
     return render_template('factory_settings_form.html', client_id=client_id, settings=settings)
 
 # --- Веб-интерфейс для продаж ---
-@app.route('/sales/<client_id>')
-def sales_view(client_id):
+@app.route('/sales')
+def sales_view():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
     sales = TotalSales.query.filter_by(client_id=client_id).order_by(TotalSales.created_at.desc()).limit(10).all()
     return render_template('sales.html', client_id=client_id, sales=sales)
 
 # --- Веб-интерфейс для статуса весов ---
-@app.route('/status/<client_id>')
-def status_view(client_id):
+@app.route('/status')
+def status_view():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
     statuses = ScaleStatus.query.filter_by(client_id=client_id).order_by(ScaleStatus.created_at.desc()).limit(10).all()
     return render_template('status.html', client_id=client_id, statuses=statuses)
 
 # --- Команды для весов ---
-@app.route('/send_scale_command/<client_id>', methods=['GET', 'POST'])
-def send_scale_command(client_id):
+@app.route('/send_scale_command', methods=['GET', 'POST'])
+def send_scale_command():
+    client_id = request.args.get('client')
+    if not client_id:
+        flash('Не указан клиент', 'error')
+        return redirect(url_for('index'))
+    
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'get_status':
@@ -616,12 +690,12 @@ def send_scale_command(client_id):
             command = Command(client_id=client_id, command=json.dumps({'action': 'get_factory_settings'}))
         else:
             flash('Неизвестная команда', 'error')
-            return redirect(url_for('send_scale_command', client_id=client_id))
+            return redirect(url_for('send_scale_command', client=client_id))
         
         db.session.add(command)
         db.session.commit()
         flash(f'Команда "{action}" отправлена клиенту {client_id}', 'success')
-        return redirect(url_for('send_scale_command', client_id=client_id))
+        return redirect(url_for('send_scale_command', client=client_id))
     
     return render_template('send_scale_command.html', client_id=client_id)
 
@@ -641,8 +715,14 @@ def select_client_for_selected():
     clients = Client.query.all()
     return render_template('select_client.html', clients=clients, action='send_selected', numbers=numbers)
 
-@app.route('/plu/send_selected_to_scales_final/<client_id>/<numbers>')
-def send_selected_to_scales_final(client_id, numbers):
+@app.route('/plu/send_selected_to_scales_final')
+def send_selected_to_scales_final():
+    client_id = request.args.get('client')
+    numbers = request.args.get('numbers')
+    if not client_id or not numbers:
+        flash('Не указан клиент или номера товаров', 'error')
+        return redirect(url_for('plu_list'))
+    
     num_list = [int(n) for n in numbers.split(',') if n.isdigit()]
     plus = PLU.query.filter(PLU.number.in_(num_list)).all()
     plu_data = []

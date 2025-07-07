@@ -25,7 +25,7 @@
                     {% else %}
                         <p class="text-muted">Настройки пользователя не загружены</p>
                     {% endif %}
-                    <a href="{{ url_for('user_settings_edit', client_id=client_id) }}" class="btn btn-primary">Редактировать</a>
+                    <a href="{{ url_for('user_settings_edit', client=client_id) }}" class="btn btn-primary">Редактировать</a>
                 </div>
             </div>
         </div>
@@ -52,7 +52,7 @@
                     {% else %}
                         <p class="text-muted">Заводские настройки не загружены</p>
                     {% endif %}
-                    <a href="{{ url_for('factory_settings_edit', client_id=client_id) }}" class="btn btn-primary">Редактировать</a>
+                    <a href="{{ url_for('factory_settings_edit', client=client_id) }}" class="btn btn-primary">Редактировать</a>
                 </div>
             </div>
         </div>
