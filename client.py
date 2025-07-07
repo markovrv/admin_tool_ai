@@ -9,7 +9,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Конфигурация
-SERVER_URL = 'http://localhost:5000'
+SERVER_URL = 'http://cas.markovrv.ru'
 CLIENT_ID = 'scale001'
 POLL_INTERVAL = 10
 RECONNECT_INTERVAL = 30
@@ -166,71 +166,76 @@ class ScaleClient:
             self.ser.reset_input_buffer()
             logging.info(f"Отправка команды {cmd}, данные: {data.hex()}")
             
-            buffer = b''
-            counter = 0
-            while self.ser.in_waiting == 0 and counter < 3:
-                try:
-                    self.ser.write(bytes.fromhex('01'))
-                except serial.SerialException as e:
-                    return None
-                time.sleep(0.05)
-                counter += 1
-
+            # Очищаем буфер перед отправкой
             while self.ser.in_waiting > 0:
-                buffer += self.ser.read()
-                time.sleep(0.01)
-
-            if len(buffer) == 0:
-                return None
-
-            buffer = b''
+                self.ser.read()
             
-            counter = 0
-            while self.ser.in_waiting == 0 and counter < 3:
-                try:
-                    self.ser.write(cmd)
+            # Отправляем команду
+            try:
+                self.ser.write(cmd)
+                if data:
+                    self.ser.write(data)
+            except serial.SerialException as e:
+                logging.error(f"Ошибка отправки команды: {e}")
+                return b''
+            
+            # Ждем ответа с таймаутом
+            start_time = time.time()
+            response = b''
+            
+            while time.time() - start_time < 2.0:  # 2 секунды таймаут
+                if self.ser.in_waiting > 0:
+                    chunk = self.ser.read(self.ser.in_waiting)
+                    response += chunk
+                    time.sleep(0.01)
+                else:
                     time.sleep(0.05)
-                    if data:
-                        self.ser.write(data)
-                except serial.SerialException as e:
-                    return None
-                time.sleep(0.05)
-                counter += 1
-
-            buffer = b''
-            while self.ser.in_waiting > 0:
-                buffer += self.ser.read()
-                time.sleep(0.01)
-            self.ser.flush()
+                
+                # Если получили достаточно данных, выходим
+                if expected_len and len(response) >= expected_len + 1:  # +1 для байта готовности
+                    break
             
-            response = buffer
-            logging.info(f"{response.hex()}")
-            if expected_len and expected_len > 0:
-                if response and response[0:1] == b'\xEE':
-                    logging.error("Ошибка выполнения команды (b'\\xEE')")
-                    ready = self.ser.read(1)
-                    if ready == b'\x80':
-                        self._ready_state = True
-                    return b'\xEE'
+            logging.info(f"Получен ответ: {response.hex()}")
+            
+            # Обрабатываем ответ
+            if not response:
+                logging.error("Нет ответа от весов")
+                return b''
+            
+            # Проверяем на ошибку
+            if response.startswith(b'\xEE'):
+                logging.error("Ошибка выполнения команды (b'\\xEE')")
+                # Ждем байт готовности
                 ready = self.ser.read(1)
                 if ready == b'\x80':
                     self._ready_state = True
-                return response[1:]
+                return b'\xEE'
+            
+            # Если ожидаем данные определенной длины
+            if expected_len and expected_len > 0:
+                # Проверяем, что получили достаточно данных
+                if len(response) < expected_len:
+                    logging.error(f"Недостаточно данных: получено {len(response)}, ожидалось {expected_len}")
+                    return b''
+                
+                # Убираем байт готовности если он есть
+                if response.endswith(b'\x80'):
+                    response = response[:-1]
+                    self._ready_state = True
+                
+                return response
             else:
-                resp = response
-                if resp == b'\xEE':
-                    logging.error("Ошибка выполнения команды (b'\\xEE')")
-                    ready = self.ser.read(1)
-                    if ready == b'\x80':
-                        self._ready_state = True
-                    return b'\xEE'
-                elif resp == b'\x80':
+                # Для команд без данных
+                if response == b'\x80':
                     self._ready_state = True
                     return b''
-                else:
-                    self._ready_state = False
-                    logging.error(f"Неожиданный ответ: {resp.hex()}")
+                elif response == b'\xEE':
+                    logging.error("Ошибка выполнения команды (b'\\xEE')")
                     return b'\xEE'
+                else:
+                    logging.warning(f"Неожиданный ответ: {response.hex()}")
+                    return b''
+                    
         except Exception as e:
             logging.error(f"Ошибка связи с весами: {str(e)}")
             self._ready_state = False
@@ -434,39 +439,46 @@ class ScaleClient:
             return {}
             
         response = self._send_command(cmd=COMMANDS['get_status'], expected_len=LENGTHS['current_status'])
-        if response == ERROR_RESPONSE:
+        
+        if not response or response == ERROR_RESPONSE:
+            logging.warning("Не удалось получить статус от весов")
             return {}
         
         if not self._check_response(response, LENGTHS['current_status'], 'Current status read'):
+            logging.warning("Некорректный ответ статуса от весов")
             return {}
         
-        data = response
-        status = data[0]
-        abs_weight = int.from_bytes(data[1:3], "little")
-        if status & 0b10000000:
-            weight = -abs_weight
-        else:
-            weight = abs_weight
+        try:
+            data = response
+            status = data[0]
+            abs_weight = int.from_bytes(data[1:3], "little")
+            if status & 0b10000000:
+                weight = -abs_weight
+            else:
+                weight = abs_weight
 
-        return {
-            "status_byte": status,
-            "weight": weight,
-            "price": int.from_bytes(data[3:7], "little"),
-            "sum": int.from_bytes(data[7:11], "little"),
-            "plu_number": int.from_bytes(data[11:15], "little"),
-            "bits": {
-                "overload": bool(status & 0b00000001),
-                "tare_mode": bool(status & 0b00000100),
-                "zero_weight": bool(status & 0b00001000),
-                "dual_range": bool(status & 0b00100000),
-                "stable_weight": bool(status & 0b01000000),
-                "minus_sign": bool(status & 0b10000000),
+            return {
+                "status_byte": status,
+                "weight": weight,
+                "price": int.from_bytes(data[3:7], "little"),
+                "sum": int.from_bytes(data[7:11], "little"),
+                "plu_number": int.from_bytes(data[11:15], "little"),
+                "bits": {
+                    "overload": bool(status & 0b00000001),
+                    "tare_mode": bool(status & 0b00000100),
+                    "zero_weight": bool(status & 0b00001000),
+                    "dual_range": bool(status & 0b00100000),
+                    "stable_weight": bool(status & 0b01000000),
+                    "minus_sign": bool(status & 0b10000000),
+                }
             }
-        }
+        except Exception as e:
+            logging.error(f"Ошибка парсинга статуса: {e}")
+            return {}
 
 # API функции
 def get_command():
-    url = f"{SERVER_URL}/api/commands/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/commands?client={CLIENT_ID}"
     try:
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
@@ -476,7 +488,7 @@ def get_command():
         return None
 
 def send_data(data_type, data):
-    url = f"{SERVER_URL}/api/data/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/data?client={CLIENT_ID}"
     payload = {'data_type': data_type, 'data': data}
     try:
         resp = requests.post(url, json=payload, timeout=10)
@@ -487,7 +499,7 @@ def send_data(data_type, data):
         return None
 
 def send_plu_data(plu_list):
-    url = f"{SERVER_URL}/api/plu_upload/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/plu_upload?client={CLIENT_ID}"
     payload = {'plu_list': plu_list}
     try:
         resp = requests.post(url, json=payload, timeout=10)
@@ -498,7 +510,7 @@ def send_plu_data(plu_list):
         return None
 
 def ack_command(command_id):
-    url = f"{SERVER_URL}/api/ack/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/ack?client={CLIENT_ID}"
     payload = {'command_id': command_id}
     try:
         resp = requests.post(url, json=payload, timeout=10)
@@ -589,8 +601,11 @@ def execute_command(command_data, scale_client):
                 return {'result': 'error', 'message': 'Весы не подключены'}
                 
             status = scale_client.get_current_status()
-            send_data('current_status', json.dumps(status, ensure_ascii=False))
-            return {'result': 'ok', 'status': status}
+            if status:  # Проверяем, что получили статус
+                send_data('current_status', json.dumps(status, ensure_ascii=False))
+                return {'result': 'ok', 'status': status}
+            else:
+                return {'result': 'error', 'message': 'Не удалось получить статус от весов'}
             
         elif action == 'get_total_sales':
             if not scale_client.is_ready():
