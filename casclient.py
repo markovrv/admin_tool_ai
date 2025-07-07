@@ -20,7 +20,7 @@ SERIAL_PORT = 'COM2'
 BAUDRATE = 9600
 
 # Настройки дисплея
-DISPLAY_PORT = 'COM3'  # Порт для символьного дисплея
+DISPLAY_PORT = 'COM4'  # Порт для символьного дисплея
 DISPLAY_BAUDRATE = 9600
 
 # Константы команд и длин
@@ -366,7 +366,7 @@ class ScaleClient:
             while self.ser.in_waiting > 0:
                 buffer += self.ser.read()
                 time.sleep(0.01)
-            self.ser.flush()
+            #self.ser.flush()
             
             response = buffer
             logging.debug(f"Ответ от весов: {response.hex()}")
@@ -377,10 +377,19 @@ class ScaleClient:
                     if ready == b'\x80':
                         self._ready_state = True
                     return b'\xEE'
-                ready = self.ser.read(1)
-                if ready == b'\x80':
-                    self._ready_state = True
-                return response[1:]
+                elif response and response[0:1] == b'\xAA':
+                    # Успешное выполнение команды, ожидаем данные
+                    logging.debug("Команда выполнена успешно (b'\\xAA'), ожидаем данные")
+                    ready = self.ser.read(1)
+                    if ready == b'\x80':
+                        self._ready_state = True
+                    return response[1:]
+                else:
+                    # Прямой ответ с данными
+                    ready = self.ser.read(1)
+                    if ready == b'\x80':
+                        self._ready_state = True
+                    return response
             else:
                 resp = response
                 if resp == b'\xEE':
@@ -392,7 +401,22 @@ class ScaleClient:
                 elif resp == b'\x80':
                     self._ready_state = True
                     return b''
+                elif resp == b'\xAA':
+                    # Успешное выполнение команды
+                    logging.debug("Команда выполнена успешно (b'\\xAA')")
+                    ready = self.ser.read(1)
+                    if ready == b'\x80':
+                        self._ready_state = True
+                    return b''
                 else:
+                    # Проверяем, может ли это быть байт готовности
+                    if len(resp) == 1:
+                        ready = self.ser.read(1)
+                        if ready == b'\x80':
+                            self._ready_state = True
+                            logging.debug(f"Получен ответ: {resp.hex()}, затем байт готовности")
+                            return b''
+                    
                     self._ready_state = False
                     logging.error(f"Неожиданный ответ: {resp.hex()}")
                     return b'\xEE'
@@ -652,7 +676,7 @@ class ScaleClient:
 
 # API функции
 def get_command():
-    url = f"{SERVER_URL}/api/commands/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/commands?client={CLIENT_ID}"
     try:
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
@@ -662,7 +686,7 @@ def get_command():
         return None
 
 def send_data(data_type, data):
-    url = f"{SERVER_URL}/api/data/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/data?client={CLIENT_ID}"
     payload = {'data_type': data_type, 'data': data}
     try:
         resp = requests.post(url, json=payload, timeout=10)
@@ -673,7 +697,7 @@ def send_data(data_type, data):
         return None
 
 def send_plu_data(plu_list):
-    url = f"{SERVER_URL}/api/plu_upload/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/plu_upload?client={CLIENT_ID}"
     payload = {'plu_list': plu_list}
     try:
         resp = requests.post(url, json=payload, timeout=10)
@@ -684,7 +708,7 @@ def send_plu_data(plu_list):
         return None
 
 def ack_command(command_id):
-    url = f"{SERVER_URL}/api/ack/{CLIENT_ID}"
+    url = f"{SERVER_URL}/api/ack?client={CLIENT_ID}"
     payload = {'command_id': command_id}
     try:
         resp = requests.post(url, json=payload, timeout=10)
@@ -694,19 +718,33 @@ def ack_command(command_id):
         logging.error(f"Ошибка при подтверждении команды: {e}")
         return None
 
-def send_status(scale_client):
-    status_data = {
-        'scales_connected': scale_client.is_ready(),
-        'port': scale_client.port,
-        'connection_attempts': scale_client._connection_attempts,
-        'timestamp': datetime.now().isoformat()
-    }
-    send_data('scales_status', json.dumps(status_data, ensure_ascii=False))
+def send_status(scale_client, status_timer=None):
+    # Приостанавливаем таймер статуса перед отправкой данных
+    #if status_timer:
+    #    status_timer.stop()
+    
+    try:
+        status_data = {
+            'scales_connected': scale_client.is_ready(),
+            'port': scale_client.port,
+            'connection_attempts': scale_client._connection_attempts,
+            'timestamp': datetime.now().isoformat()
+        }
+        send_data('scales_status', json.dumps(status_data, ensure_ascii=False))
+    finally:
+        pass
+        # Возобновляем таймер статуса после отправки данных
+    #    if status_timer:
+    #        status_timer.start()
 
-def execute_command(command_data, scale_client):
+def execute_command(command_data, scale_client, status_timer=None):
     try:
         command = json.loads(command_data)
         action = command.get('action')
+        
+        # Приостанавливаем таймер статуса перед выполнением команды
+        if status_timer:
+            status_timer.stop()
         
         if action == 'upload_plu':
             if not scale_client.is_ready():
@@ -800,6 +838,10 @@ def execute_command(command_data, scale_client):
     except Exception as e:
         logging.error(f"Ошибка выполнения команды: {e}")
         return {'result': 'error', 'message': str(e)}
+    finally:
+        # Возобновляем таймер статуса после выполнения команды
+        if status_timer:
+            status_timer.start()
 
 class RepeatedTimer:
     """Класс для выполнения функции с заданным интервалом"""
@@ -831,29 +873,37 @@ def main():
     logging.info(f"Клиент {CLIENT_ID} запущен. Опрос сервера {SERVER_URL}")
     
     scale_client = ScaleClient()
-    send_status(scale_client)
     
     # Таймер для периодического запроса статуса весов (1 раз в секунду)
-    status_timer = RepeatedTimer(1.0, lambda: scale_client.get_current_status())
+    status_timer = RepeatedTimer(0.6, lambda: scale_client.get_current_status())
+    
+    # Отправляем начальный статус
+    send_status(scale_client, status_timer)
     
     try:
         while True:
             if not scale_client.is_ready():
                 scale_client.try_reconnect()
-                send_status(scale_client)
+                send_status(scale_client, status_timer)
             
             cmd_resp = get_command()
             if cmd_resp and cmd_resp.get('command'):
+
+                # Приостанавливаем таймер статуса перед обменом с сервером
+                status_timer.stop()
+                time.sleep(1)
+
                 command = cmd_resp['command']
                 command_id = cmd_resp['command_id']
                 
                 logging.info(f"Получена команда: {command}")
-                result = execute_command(command, scale_client)
+                result = execute_command(command, scale_client, status_timer)
                 
                 send_data('command_result', json.dumps(result, ensure_ascii=False))
                 ack_command(command_id)
                 
                 logging.info(f"Команда выполнена: {result}")
+                status_timer.start()
             
             time.sleep(POLL_INTERVAL)
             
